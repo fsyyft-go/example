@@ -36,8 +36,13 @@ func init() {
 func writeComplete(c *nbio.Conn, data []byte) (int, error) {
 	offset := 0
 	msgLen := len(data)
+	endIndex := 0
 	for {
-		n, err := c.Write(data[offset:])
+		endIndex = offset + (1024 * 1024)
+		if endIndex > msgLen {
+			endIndex = msgLen - 1
+		}
+		n, err := c.Write(data[offset:endIndex])
 		exTesting.Printf("服务端 发送数据：%[1]d %[2]v\n", n, err)
 		offset += n
 		if err != nil || offset == msgLen {
