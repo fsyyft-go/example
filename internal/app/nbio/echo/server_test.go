@@ -49,11 +49,6 @@ func testServer(ready chan error) error {
 		MaxWriteBufferSize: 6 * 1024 * 1024,
 	})
 
-	go func() {
-		time.Sleep(time.Second * 3)
-		g.Shutdown(context.TODO()) //nolint:errcheck
-	}()
-
 	g.OnOpen(func(c *nbio.Conn) {
 		_, err := writeComplete(c, buf)
 		if err != nil {
@@ -69,6 +64,11 @@ func testServer(ready chan error) error {
 		return fmt.Errorf("nbio.Start failed: %w", err)
 	}
 	ready <- err
+
+	go func() {
+		time.Sleep(time.Second * 3)
+		g.Shutdown(context.TODO()) //nolint:errcheck
+	}()
 	// defer g.Stop()
 
 	g.Wait()
