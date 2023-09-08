@@ -80,7 +80,7 @@ func testServer(ready chan error) error {
 		if r := recover(); nil != r {
 			exTesting.Printf("OnClose 发生异常：%[1]s", r)
 		}
-		g.Stop()
+		// g.Stop()
 	})
 
 	err := g.Start()
