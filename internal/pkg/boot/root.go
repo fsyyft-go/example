@@ -1,4 +1,4 @@
-package main
+package boot
 
 import (
 	"fmt"
@@ -16,4 +16,8 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+}
+
+func Execute() error {
+	return rootCmd.Execute()
 }
