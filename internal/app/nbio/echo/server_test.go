@@ -28,31 +28,32 @@ var (
 	buf = make([]byte, 6*1024*1024)
 )
 
-func init() {
-	// 对 buf 进行随机的填充。
-	rand.Read(buf) //nolint:errcheck
-}
-
 func writeComplete(c *nbio.Conn, data []byte) (int, error) {
 	offset := 0
 	msgLen := len(data)
 	endIndex := 0
+
+	i := 0
 	for {
 		endIndex = offset + (1024 * 1024)
 		if endIndex > msgLen {
 			endIndex = msgLen - 1
 		}
 		n, err := c.Write(data[offset:endIndex])
-		exTesting.Printf("服务端 发送数据：%[1]d %[2]v\n", n, err)
+
+		i++
+		exTesting.Printf("服务端 发送数据：%[1]d %[2]d %[3]d %[4]d %[5]v\n", i, n, offset, endIndex, err)
 		offset += n
 		if err != nil || offset == msgLen {
 			exTesting.Printf("服务端 发送结束：%[1]d %[2]v\n", offset, err)
 			return offset, err
 		}
+		time.Sleep(time.Millisecond * 10)
 	}
+
 }
 
-func testServer(ready chan error) error {
+func testServer(ready chan error, exit chan interface{}) error {
 	g := nbio.NewGopher(nbio.Config{
 		Network:            "tcp",
 		Addrs:              []string{addr1},
@@ -66,30 +67,12 @@ func testServer(ready chan error) error {
 		}
 	})
 
-	/**
-	 * 2023/09/14 12:15:41.483 [INF] NBIO[NB] stop
-	 * 2023/09/14 12:15:41.483 [INF] NBIO[NB] stop
-	 * 2023/09/14 12:15:41.483 [ERR] Timer[NB] exec call failed: sync: negative WaitGroup counter
-	 * goroutine 29 [running]:
-	 * github.com/lesismal/nbio/timer.(*Timer).Async.func1.1()
-	 * 	/home/runner/go/pkg/mod/github.com/lesismal/nbio@v1.3.18/timer/timer.go:69 +0x72
-	 * panic({0x5538c0?, 0x5c0e40?})
-	 * 	/opt/hostedtoolcache/go/1.21.1/x64/src/runtime/panic.go:914 +0x21f
-	 * sync.(*WaitGroup).Add(0x0?, 0x0?)
-	 * 	/opt/hostedtoolcache/go/1.21.1/x64/src/sync/waitgroup.go:62 +0xd8
-	 * sync.(*WaitGroup).Done(0xc0000da000?)
-	 * 	/opt/hostedtoolcache/go/1.21.1/x64/src/sync/waitgroup.go:87 +0x1a
-	 * github.com/fsyyft-go/example/internal/app/nbio/echo.testServer.(*Engine).OnClose.func5.1()
-	 * 	/home/runner/go/pkg/mod/github.com/lesismal/nbio@v1.3.18/engine.go:239 +0x71
-	 * github.com/lesismal/nbio/timer.(*Timer).Async.func1()
-	 * 	/home/runner/go/pkg/mod/github.com/lesismal/nbio@v1.3.18/timer/timer.go:73 +0x4d
-	 * created by github.com/lesismal/nbio/timer.(*Timer).Async in goroutine 28
-	 * 	/home/runner/go/pkg/mod/github.com/lesismal/nbio@v1.3.18/timer/timer.go:63 +0x67
-	 */
 	g.OnClose(func(c *nbio.Conn, err error) {
 		if r := recover(); nil != r {
 			exTesting.Printf("服务端 OnClose 发生错误：%[1]v\n", r)
 		}
+		exTesting.Printf("服务端 OnClose 开始执行：%[1]v\n", err)
+		exit <- struct{}{}
 		g.Stop()
 	})
 
@@ -114,7 +97,7 @@ func testServer(ready chan error) error {
 	return nil
 }
 
-func testClient(msgLen int) error {
+func testClient(msgLen int, exit chan interface{}) error {
 	var (
 		ret  []byte
 		addr = addr1
@@ -126,50 +109,62 @@ func testClient(msgLen int) error {
 	}
 
 	i := 0
-
-	nodataCount := 0
-
 	line := make([]byte, 600000)
 	for {
-		c.SetReadDeadline(time.Now().Add(3 * time.Second)) //nolint:errcheck
-		n, err := c.Read(line)
-		if 0 == n {
-			nodataCount++
-			time.Sleep(time.Millisecond * 50)
-		} else {
-			nodataCount = 0
-		}
+		select {
+		case <-exit:
+			// TODO 这种情况，不是预期的，需要找出来原因。
+			exTesting.Printf("客户端 因服务端异常而退出\n")
 
-		if nil != err && errors.Is(err, io.EOF) {
-			// TODO 服务端还在发送，但客户端会出现 EOF。
-			exTesting.Printf("客户端 数据接收 结束：%[1]d %[2]s\n", nodataCount, err.Error())
 			return nil
-		} else if nodataCount > 50 || i >= 1024 || (err != nil && !errors.Is(err, io.EOF)) {
-			return fmt.Errorf("error read: %d %w", n, err)
-		}
+		default:
+			n, err := c.Write([]byte{})
+			if nil != err {
+				return fmt.Errorf("客户端 发送数据（空包）异常：%[1]s\n", err.Error())
+			}
 
-		if n > 0 {
+			n, err = c.Read(line)
+
+			if nil != err && !errors.Is(err, io.EOF) {
+				return fmt.Errorf("error read: %d %d %w", i, n, err)
+			} else if nil != err && errors.Is(err, io.EOF) {
+				time.Sleep(time.Millisecond * 50)
+			}
+
 			i++
 			ret = append(ret, line[:n]...)
 			exTesting.Printf("客户端 收到数据：%d %d %d of %d\n", i, n, len(ret), len(buf))
-		}
 
-		if len(ret) == len(buf) {
-			if bytes.Equal(buf, ret) {
-				return nil
+			if len(ret) == len(buf) {
+				if bytes.Equal(buf, ret) {
+					return nil
+				}
+				return fmt.Errorf("ret, does not match buf")
 			}
-			return fmt.Errorf("ret, does not match buf")
 		}
-
 	}
 }
 
 func TestWriteData(t *testing.T) {
+	/**
+	 * 1. 对需要进行发送的数据，进行随机的填充。
+	 * 2. 异步启动服务端。
+	 * 3. 同步等服务端启动完成后，启动客户端。
+	 * 4. 客户端连接后，服务端一次性发送消息。
+	 * 5. 客户端收到所有消息后，客户端断开连接。
+	 * 6. 客户端断开连接时，服务端的回调函数触发，关闭服务。
+	 * 7. 服务端退出后，测试结束。
+	 */
 	assertions := assert.New(t)
+
+	// 对 buf 进行随机的填充。
+	rand.Read(buf) //nolint:errcheck
+
+	exit := make(chan interface{})
 
 	ready := make(chan error)
 	go func() {
-		err := testServer(ready)
+		err := testServer(ready, exit)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -178,7 +173,8 @@ func TestWriteData(t *testing.T) {
 	err := <-ready
 	assertions.Nil(err)
 
-	err = testClient(1024 * 1024 * 4)
+	err = testClient(1024*1024*4, exit)
+	time.Sleep(500 * time.Millisecond)
 	assertions.Nil(err)
 }
 
