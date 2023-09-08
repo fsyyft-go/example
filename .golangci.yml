@@ -1,0 +1,153 @@
+# 参考：
+#   https://golangci-lint.run/usage/configuration/#config-file
+#   TODO 注释少了。
+run:
+  timeout: 10m
+  issues-exit-code: 1
+  tests: true
+  allow-parallel-runners: false
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  path-prefix: ""
+  sort-results: true
+linters:
+  enable-all: false
+  disable-all: false
+  enable:
+    - bodyclose
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - prealloc
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - durationcheck
+    - errorlint
+    - exportloopref
+    - gocheckcompilerdirectives
+    - gosec
+    - loggercheck
+    - makezero
+    - nilerr
+    - noctx
+    - reassign
+    - sqlclosecheck
+    - testableexamples
+    - cyclop
+    - funlen
+    - gocognit
+    - gocyclo
+    - maintidx
+  disable:
+    - deadcode
+    - structcheck
+    - varcheck
+  fast: false
+linters-settings:
+  deadcode: {}
+  bodyclose: {}
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+    exclude-functions: []
+  gosimple:
+    go: "1.17"
+    checks:
+      - all
+  govet:
+    check-shadowing: true
+    disable:
+      - fieldalignment
+      - shadow
+    enable-all: true
+    disable-all: false
+    settings:
+      printf: {}
+  ineffassign: {}
+  staticcheck:
+    go: "1.17"
+    checks:
+      - all
+    dot-import-whitelist:
+      - fmt
+    initialisms:
+      - ACL
+      - API
+      - ASCII
+      - CPU
+      - CSS
+      - DNS
+      - EOF
+      - GUID
+      - HTML
+      - HTTP
+      - HTTPS
+      - ID
+      - IP
+      - JSON
+      - QPS
+      - RAM
+      - RPC
+      - SLA
+      - SMTP
+      - SQL
+      - SSH
+      - TCP
+      - TLS
+      - TTL
+      - UDP
+      - UI
+      - GID
+      - UID
+      - UUID
+      - URI
+      - URL
+      - UTF8
+      - VM
+      - XML
+      - XMPP
+      - XSRF
+      - XSS
+    http-status-code-whitelist:
+      - "200"
+      - "400"
+      - "404"
+      - "500"
+  structcheck: {}
+  typecheck: {}
+  unused:
+    go: "1.20"
+  varcheck: {}
+  funlen:
+    lines: 120
+    statements: 80
+  gocognit:
+    min-complexity: 100
+  cyclop:
+    max-complexity: 100
+    package-average: 0
+    skip-tests: false
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+  gosec:
+    excludes:
+      - G401
+      - G402
+      - G403
+      - G404
+      - G501
+      - G502
+      - G503
+      - G504
+      - G505
