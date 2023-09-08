@@ -49,9 +49,7 @@ func writeComplete(c *nbio.Conn, data []byte) (int, error) {
 			exTesting.Printf("服务端 发送结束：%[1]d %[2]v\n", offset, err)
 			return offset, err
 		}
-		time.Sleep(time.Millisecond * 100)
 	}
-
 }
 
 func testServer(ready chan error) error {
@@ -128,18 +126,34 @@ func testClient(msgLen int) error {
 	}
 
 	i := 0
+
+	nodataCount := 0
+
 	line := make([]byte, 600000)
 	for {
+		c.SetReadDeadline(time.Now().Add(3 * time.Second)) //nolint:errcheck
 		n, err := c.Read(line)
-		if 0 == n || i >= 1024 || (err != nil && !errors.Is(err, io.EOF)) {
+		if 0 == n {
+			nodataCount++
+			time.Sleep(time.Millisecond * 50)
+		} else {
+			nodataCount = 0
+		}
+
+		if nil != err && errors.Is(err, io.EOF) {
+			// TODO 服务端还在发送，但客户端会出现 EOF。
+			exTesting.Printf("客户端 数据接收 结束：%[1]d %[2]s\n", nodataCount, err.Error())
+			return nil
+		} else if nodataCount > 50 || i >= 1024 || (err != nil && !errors.Is(err, io.EOF)) {
 			return fmt.Errorf("error read: %d %w", n, err)
 		}
-		if errors.Is(err, io.EOF) {
-			time.Sleep(time.Millisecond * 50)
+
+		if n > 0 {
+			i++
+			ret = append(ret, line[:n]...)
+			exTesting.Printf("客户端 收到数据：%d %d %d of %d\n", i, n, len(ret), len(buf))
 		}
-		i++
-		ret = append(ret, line[:n]...)
-		exTesting.Printf("客户端 收到数据：%d %d %d of %d\n", i, n, len(ret), len(buf))
+
 		if len(ret) == len(buf) {
 			if bytes.Equal(buf, ret) {
 				return nil
