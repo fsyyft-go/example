@@ -29,8 +29,8 @@ jobs:
 
       - name: 检查
         run: |
-          echo "待实现"
+          make test-pre
 
       - name: 测试
         run: |
-          echo "待实现"
+          make test
