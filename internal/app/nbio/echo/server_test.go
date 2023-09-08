@@ -2,13 +2,14 @@ package echo
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
-	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -100,7 +101,7 @@ func testServer(ready chan error) error {
 
 		exTesting.Println("Stop 方法已经调用，准备强制退出。")
 
-		os.Exit(0)
+		// os.Exit(0)
 	}()
 	// defer g.Stop()
 
@@ -142,6 +143,63 @@ func testClient(msgLen int) error {
 
 	}
 }
+
+type myServer struct {
+	nbio.Engine
+	sync.Once
+}
+
+func (s *myServer) Stop() {
+	s.Once.Do(func() {
+		s.Engine.Stop()
+	})
+}
+
+func (s *myServer) Shutdown(ctx context.Context) error {
+	var err error
+
+	s.Once.Do(func() {
+		err = s.Engine.Shutdown(ctx)
+	})
+
+	return err
+}
+
+func TestServerStop(t *testing.T) {
+	t.Run("Stop", func(t *testing.T) {
+		g := &myServer{
+			Engine: *nbio.NewGopher(nbio.Config{
+				Network:            "tcp",
+				Addrs:              []string{addr},
+				MaxWriteBufferSize: 6 * 1024 * 1024,
+			}),
+		}
+
+		g.OnOpen(func(c *nbio.Conn) {
+			exTesting.Printf("ServerStop 方法的 OnOpen：%[1]s\n", c.RemoteAddr())
+		})
+
+		g.OnClose(func(c *nbio.Conn, err error) {
+			exTesting.Printf("ServerStop 方法的 OnClose：%[1]s\n", c.RemoteAddr())
+		})
+
+		g.OnStop(func() {
+			exTesting.Printf("ServerStop 方法的 OnStop\n")
+		})
+
+		if err := g.Start(); nil != err {
+			exTesting.Printf("ServerStop 方法的 Start 发生错误：%[1]s\n", err.Error())
+		} else {
+			g.Stop()
+			_ = g.Shutdown(context.TODO())
+			g.Stop()
+			_ = g.Shutdown(context.TODO())
+			g.Stop()
+			_ = g.Shutdown(context.TODO())
+		}
+	})
+}
+
 func Test_main(t *testing.T) {
 	ready := make(chan error)
 	go func() {
