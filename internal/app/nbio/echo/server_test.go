@@ -126,7 +126,7 @@ func testClient(msgLen int) error {
 	line := make([]byte, 600000)
 	for {
 		n, err := c.Read(line)
-		if 0 == n || (err != nil && !errors.Is(err, io.EOF)) {
+		if 0 == n || n >= 65535 || (err != nil && !errors.Is(err, io.EOF)) {
 			return fmt.Errorf("error read: %d %w", n, err)
 		}
 		if errors.Is(err, io.EOF) {
