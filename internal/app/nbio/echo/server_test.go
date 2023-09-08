@@ -2,7 +2,6 @@ package echo
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -57,6 +56,26 @@ func testServer(ready chan error) error {
 			fmt.Printf("write failed: %s\n", err)
 		}
 	})
+	/**
+	 * 2023/09/14 12:15:41.483 [INF] NBIO[NB] stop
+	 * 2023/09/14 12:15:41.483 [INF] NBIO[NB] stop
+	 * 2023/09/14 12:15:41.483 [ERR] Timer[NB] exec call failed: sync: negative WaitGroup counter
+	 * goroutine 29 [running]:
+	 * github.com/lesismal/nbio/timer.(*Timer).Async.func1.1()
+	 * 	/home/runner/go/pkg/mod/github.com/lesismal/nbio@v1.3.18/timer/timer.go:69 +0x72
+	 * panic({0x5538c0?, 0x5c0e40?})
+	 * 	/opt/hostedtoolcache/go/1.21.1/x64/src/runtime/panic.go:914 +0x21f
+	 * sync.(*WaitGroup).Add(0x0?, 0x0?)
+	 * 	/opt/hostedtoolcache/go/1.21.1/x64/src/sync/waitgroup.go:62 +0xd8
+	 * sync.(*WaitGroup).Done(0xc0000da000?)
+	 * 	/opt/hostedtoolcache/go/1.21.1/x64/src/sync/waitgroup.go:87 +0x1a
+	 * github.com/fsyyft-go/example/internal/app/nbio/echo.testServer.(*Engine).OnClose.func5.1()
+	 * 	/home/runner/go/pkg/mod/github.com/lesismal/nbio@v1.3.18/engine.go:239 +0x71
+	 * github.com/lesismal/nbio/timer.(*Timer).Async.func1()
+	 * 	/home/runner/go/pkg/mod/github.com/lesismal/nbio@v1.3.18/timer/timer.go:73 +0x4d
+	 * created by github.com/lesismal/nbio/timer.(*Timer).Async in goroutine 28
+	 * 	/home/runner/go/pkg/mod/github.com/lesismal/nbio@v1.3.18/timer/timer.go:63 +0x67
+	 */
 	g.OnClose(func(c *nbio.Conn, err error) {
 		if r := recover(); nil != r {
 			exTesting.Printf("OnClose 发生异常：%[1]s", r)
@@ -76,7 +95,7 @@ func testServer(ready chan error) error {
 		}
 
 		time.Sleep(time.Second * 3)
-		g.Shutdown(context.TODO()) //nolint:errcheck
+		g.Stop()
 	}()
 	// defer g.Stop()
 
