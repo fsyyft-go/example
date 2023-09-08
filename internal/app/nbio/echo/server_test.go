@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/lesismal/nbio"
+
+	exTesting "github.com/fsyyft-go/example/pkg/testing"
 )
 
 const (
@@ -56,6 +58,9 @@ func testServer(ready chan error) error {
 		}
 	})
 	g.OnClose(func(c *nbio.Conn, err error) {
+		if r := recover(); nil != r {
+			exTesting.Printf("OnClose 发生异常：%[1]s", r)
+		}
 		g.Stop()
 	})
 
@@ -66,6 +71,10 @@ func testServer(ready chan error) error {
 	ready <- err
 
 	go func() {
+		if r := recover(); nil != r {
+			exTesting.Printf("关闭 groutine 发生异常：%[1]s", r)
+		}
+
 		time.Sleep(time.Second * 3)
 		g.Shutdown(context.TODO()) //nolint:errcheck
 	}()
