@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fsyyft-go/example/pkg/sys"
 	"github.com/lesismal/nbio"
 	"github.com/lesismal/nbio/logging"
+
+	exSys "github.com/fsyyft-go/example/pkg/sys"
 )
 
 var (
-	_ sys.Runnable = (*client)(nil)
+	_ exSys.Runnable = (*client)(nil)
 )
 
 type (
@@ -25,7 +26,7 @@ func (c *client) Run() { //nolint:unused
 	var (
 		ret    []byte
 		buf    = make([]byte, 1024*1024*4)
-		addr   = "localhost:8888"
+		addr   = "127.0.0.1:44444"
 		ctx, _ = context.WithTimeout(context.Background(), 60*time.Second) //nolint:govet
 	)
 

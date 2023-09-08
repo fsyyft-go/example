@@ -5,11 +5,11 @@ import (
 
 	"github.com/lesismal/nbio"
 
-	"github.com/fsyyft-go/example/pkg/sys"
+	exSys "github.com/fsyyft-go/example/pkg/sys"
 )
 
 var (
-	_ sys.Runnable = (*server)(nil)
+	_ exSys.Runnable = (*server)(nil)
 )
 
 type (
@@ -18,7 +18,6 @@ type (
 )
 
 func (s *server) Run() { //nolint:unused
-
 	engine := nbio.NewEngine(nbio.Config{
 		Network:            "tcp",
 		Addrs:              []string{"127.0.0.1:44444"},
