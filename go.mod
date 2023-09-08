@@ -3,6 +3,7 @@ module github.com/fsyyft-go/example
 go 1.21
 
 require (
+	github.com/lesismal/nbio v1.3.18
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
 )
