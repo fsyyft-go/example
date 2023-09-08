@@ -165,15 +165,21 @@ func (s *myServer) Shutdown(ctx context.Context) error {
 	return err
 }
 
+func newMyServer(conf nbio.Config) *myServer {
+	g := &myServer{
+		Engine: *nbio.NewGopher(conf),
+	}
+
+	return g
+}
+
 func TestServerStop(t *testing.T) {
 	t.Run("Stop", func(t *testing.T) {
-		g := &myServer{
-			Engine: *nbio.NewGopher(nbio.Config{
-				Network:            "tcp",
-				Addrs:              []string{addr},
-				MaxWriteBufferSize: 6 * 1024 * 1024,
-			}),
-		}
+		g := newMyServer(nbio.Config{
+			Network:            "tcp",
+			Addrs:              []string{addr},
+			MaxWriteBufferSize: 6 * 1024 * 1024,
+		})
 
 		g.OnOpen(func(c *nbio.Conn) {
 			exTesting.Printf("ServerStop 方法的 OnOpen：%[1]s\n", c.RemoteAddr())
