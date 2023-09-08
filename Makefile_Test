@@ -1,0 +1,54 @@
+# 编码输出的应用程序名称。
+APP_OUTPUT=./bin
+APP_LOGS=./logs
+
+# 是否后台工作状态。
+ENV_ENABLE_DAEMON=${MAKE_ENABLE_DAEMON}
+
+CMD_ECHO=echo
+CMD_MKDIR=mkdir
+CMD_GO=go
+
+.PHONY: test-all
+test-all: test-pkg/runtime/goroutine test-pkg/testing
+	@$(CMD_ECHO) ENV_ENABLE_DAEMON $(ENV_ENABLE_DAEMON)
+
+.PHONY: test-pkg/runtime/goroutine
+test-pkg/runtime/goroutine:
+	# 准备测试 pkg/runtime/goroutine。
+	@$(CMD_MKDIR) -p $(APP_OUTPUT)/out/$(subst test-,,$@)
+
+ifeq ($(ENV_ENABLE_DAEMON),1)
+	$(CMD_GO) test -v -bench=. ./$(subst test-,,$@)
+else
+	@$(CMD_GO) test -v -bench=. ./$(subst test-,,$@)                        \
+		 	-coverprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/conver.out   \
+			-cpuprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.out        \
+			-memprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/mem.out        \
+			-blockprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/block.out
+
+	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.out     > $(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.pdf
+	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/mem.out     > $(APP_OUTPUT)/out/$(subst test-,,$@)/mem.pdf
+	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/block.out   > $(APP_OUTPUT)/out/$(subst test-,,$@)/block.pdf
+endif
+	# 完成测试 pkg/runtime/goroutine。
+
+.PHONY: test-pkg/testing
+test-pkg/testing:
+	# 准备测试 pkg/testing。
+	@$(CMD_MKDIR) -p $(APP_OUTPUT)/out/$(subst test-,,$@)
+
+ifeq ($(ENV_ENABLE_DAEMON),1)
+	$(CMD_GO) test -v -bench=. ./$(subst test-,,$@)
+else
+	@$(CMD_GO) test -v -bench=. ./$(subst test-,,$@)                        \
+		 	-coverprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/conver.out   \
+			-cpuprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.out        \
+			-memprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/mem.out        \
+			-blockprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/block.out
+
+	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.out     > $(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.pdf
+	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/mem.out     > $(APP_OUTPUT)/out/$(subst test-,,$@)/mem.pdf
+	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/block.out   > $(APP_OUTPUT)/out/$(subst test-,,$@)/block.pdf
+endif
+	# 完成测试 pkg/testing。
