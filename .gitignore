@@ -1,0 +1,50 @@
+# 从现有项目拷贝的，不是最佳实践。
+# TODO 需要找时间优化。
+.idea
+.DS_Store
+*.log
+*.test
+*.o
+*.idea
+*.vscode
+*.dll
+*.exe
+*.mmdb
+*.key
+*.tar.gz
+*.test
+*.wasm
+**/wasm_exec.js
+*.pprof
+*.memprof
+**/bin
+**/data
+**/debug
+**/docs
+**/logs
+**/assets/embed/**
+**/swagger
+**/*.pb.go
+**/*.pb.gw.go
+**/*_mock_test.go
+
+
+# 下列忽略来自：https://github.com/github/gitignore/blob/main/Go.gitignore
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
