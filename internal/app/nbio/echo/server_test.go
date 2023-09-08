@@ -14,12 +14,14 @@ import (
 	"time"
 
 	"github.com/lesismal/nbio"
+	"github.com/stretchr/testify/assert"
 
 	exTesting "github.com/fsyyft-go/example/pkg/testing"
 )
 
 const (
-	addr = "127.0.0.1:4444"
+	addr1 = "127.0.0.1:4444"
+	addr2 = "127.0.0.1:4445"
 )
 
 var (
@@ -27,6 +29,7 @@ var (
 )
 
 func init() {
+	// 对 buf 进行随机的填充。
 	rand.Read(buf) //nolint:errcheck
 }
 
@@ -35,12 +38,13 @@ func writeComplete(c *nbio.Conn, data []byte) (int, error) {
 	msgLen := len(data)
 	for {
 		n, err := c.Write(data[offset:])
-		fmt.Printf("write %d %s\n", n, err)
+		exTesting.Printf("服务端 发送数据：%[1]d %[2]v\n", n, err)
 		offset += n
 		if err != nil || offset == msgLen {
+			exTesting.Printf("服务端 发送结束：%[1]d %[2]v\n", offset, err)
 			return offset, err
 		}
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 100)
 	}
 
 }
@@ -48,16 +52,17 @@ func writeComplete(c *nbio.Conn, data []byte) (int, error) {
 func testServer(ready chan error) error {
 	g := nbio.NewGopher(nbio.Config{
 		Network:            "tcp",
-		Addrs:              []string{addr},
+		Addrs:              []string{addr1},
 		MaxWriteBufferSize: 6 * 1024 * 1024,
 	})
 
 	g.OnOpen(func(c *nbio.Conn) {
 		_, err := writeComplete(c, buf)
 		if err != nil {
-			fmt.Printf("write failed: %s\n", err)
+			exTesting.Printf("服务端 发送数据发生错误：%[1]s\n", err.Error())
 		}
 	})
+
 	/**
 	 * 2023/09/14 12:15:41.483 [INF] NBIO[NB] stop
 	 * 2023/09/14 12:15:41.483 [INF] NBIO[NB] stop
@@ -80,60 +85,56 @@ func testServer(ready chan error) error {
 	 */
 	g.OnClose(func(c *nbio.Conn, err error) {
 		if r := recover(); nil != r {
-			exTesting.Printf("OnClose 发生异常：%[1]s\n", r)
+			exTesting.Printf("服务端 OnClose 发生错误：%[1]v\n", r)
 		}
-		// g.Stop()
+		g.Stop()
 	})
 
 	err := g.Start()
 	if err != nil {
-		return fmt.Errorf("nbio.Start failed: %w", err)
+		exTesting.Printf("服务端 Start 发生错误：%[1]v\n", err)
 	}
 	ready <- err
 
-	go func() {
+	defer func() {
 		if r := recover(); nil != r {
-			exTesting.Printf("关闭 groutine 发生异常：%[1]s\n", r)
+			exTesting.Printf("服务端 defer 发生错误：%[1]v\n", r)
 		}
 
-		time.Sleep(time.Second * 3)
+		exTesting.Printf("服务端 defer 执行")
+
 		g.Stop()
-
-		exTesting.Println("Stop 方法已经调用，准备强制退出。")
-
-		// os.Exit(0)
 	}()
-	// defer g.Stop()
 
 	g.Wait()
+
 	return nil
 }
 
 func testClient(msgLen int) error {
 	var (
 		ret  []byte
-		addr = addr
+		addr = addr1
 	)
 	c, err := net.Dial("tcp", addr)
 	if err != nil {
-		fmt.Println(err)
+		exTesting.Printf("客户端 建立连接 失败：%[1]s\n", err.Error())
 		return err
 	}
 
 	i := 0
-	line := make([]byte, 60000)
+	line := make([]byte, 600000)
 	for {
-
 		n, err := c.Read(line)
-		if err != nil && !errors.Is(err, io.EOF) {
+		if 0 == n || (err != nil && !errors.Is(err, io.EOF)) {
 			return fmt.Errorf("error read: %d %w", n, err)
 		}
 		if errors.Is(err, io.EOF) {
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Millisecond * 50)
 		}
 		i++
 		ret = append(ret, line[:n]...)
-		fmt.Printf("client received %d %d %d of %d\n", i, n, len(ret), len(buf))
+		exTesting.Printf("客户端 收到数据：%d %d %d of %d\n", i, n, len(ret), len(buf))
 		if len(ret) == len(buf) {
 			if bytes.Equal(buf, ret) {
 				return nil
@@ -142,6 +143,24 @@ func testClient(msgLen int) error {
 		}
 
 	}
+}
+
+func TestWriteData(t *testing.T) {
+	assertions := assert.New(t)
+
+	ready := make(chan error)
+	go func() {
+		err := testServer(ready)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	err := <-ready
+	assertions.Nil(err)
+
+	err = testClient(1024 * 1024 * 4)
+	assertions.Nil(err)
 }
 
 type myServer struct {
@@ -177,7 +196,7 @@ func TestServerStop(t *testing.T) {
 	t.Run("Stop", func(t *testing.T) {
 		g := newMyServer(nbio.Config{
 			Network:            "tcp",
-			Addrs:              []string{addr},
+			Addrs:              []string{addr2},
 			MaxWriteBufferSize: 6 * 1024 * 1024,
 		})
 
@@ -196,6 +215,7 @@ func TestServerStop(t *testing.T) {
 		if err := g.Start(); nil != err {
 			exTesting.Printf("ServerStop 方法的 Start 发生错误：%[1]s\n", err.Error())
 		} else {
+			time.Sleep(time.Millisecond * 100)
 			g.Stop()
 			_ = g.Shutdown(context.TODO())
 			g.Stop()
@@ -207,21 +227,5 @@ func TestServerStop(t *testing.T) {
 }
 
 func Test_main(t *testing.T) {
-	ready := make(chan error)
-	go func() {
-		err := testServer(ready)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 
-	err := <-ready
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = testClient(1024 * 1024 * 4)
-	if err != nil {
-		t.Fatal(err)
-	}
 }
