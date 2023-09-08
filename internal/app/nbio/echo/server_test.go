@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -78,7 +79,7 @@ func testServer(ready chan error) error {
 	 */
 	g.OnClose(func(c *nbio.Conn, err error) {
 		if r := recover(); nil != r {
-			exTesting.Printf("OnClose 发生异常：%[1]s", r)
+			exTesting.Printf("OnClose 发生异常：%[1]s\n", r)
 		}
 		// g.Stop()
 	})
@@ -91,11 +92,15 @@ func testServer(ready chan error) error {
 
 	go func() {
 		if r := recover(); nil != r {
-			exTesting.Printf("关闭 groutine 发生异常：%[1]s", r)
+			exTesting.Printf("关闭 groutine 发生异常：%[1]s\n", r)
 		}
 
 		time.Sleep(time.Second * 3)
 		g.Stop()
+
+		exTesting.Println("Stop 方法已经调用，准备强制退出。")
+
+		os.Exit(0)
 	}()
 	// defer g.Stop()
 
