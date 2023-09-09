@@ -61,10 +61,15 @@ func testServer(ready chan error, exit chan interface{}) error {
 	})
 
 	g.OnOpen(func(c *nbio.Conn) {
-		_, err := writeComplete(c, buf)
-		if err != nil {
-			exTesting.Printf("服务端 发送数据发生错误：%[1]s\n", err.Error())
-		}
+		// OnOpen 时直接发送大数据包，可能出现问题。
+		// 参考：https://github.com/lesismal/nbio/pull/352 。
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			_, err := writeComplete(c, buf)
+			if err != nil {
+				exTesting.Printf("服务端 发送数据发生错误：%[1]s\n", err.Error())
+			}
+		}()
 	})
 
 	g.OnClose(func(c *nbio.Conn, err error) {
@@ -120,7 +125,7 @@ func testClient(msgLen int, exit chan interface{}) error {
 		default:
 			n, err := c.Write([]byte{})
 			if nil != err {
-				return fmt.Errorf("客户端 发送数据（空包）异常：%[1]s\n", err.Error())
+				return fmt.Errorf("客户端 发送数据（空包）异常：%[1]d %[2]s\n", n, err.Error())
 			}
 
 			n, err = c.Read(line)
