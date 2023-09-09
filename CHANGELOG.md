@@ -1,3 +1,17 @@
+## v0.0.4
+
+### New Features
+
+- feat: 增加 RunnableWithContext 接口
+
+### Bug Fixes
+
+### Documentation
+
+### Dependency Upgrades
+
+### Contributors
+
 ## v0.0.3
 
 ### New Features
