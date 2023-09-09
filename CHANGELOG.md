@@ -19,6 +19,7 @@
 ### New Features
 
 - test(nbio): 增加 echo 的单元测试
+- feat: 增加 Runnable 接口
 
 ### Bug Fixes
 
