@@ -1,7 +1,6 @@
 package netstd
 
 import (
-	"fmt"
 	"log/slog"
 	"net"
 
@@ -26,7 +25,7 @@ type (
 func (s *server) Run() { //nolint:unused
 	g := nbio.NewGopher(nbio.Config{})
 	g.OnOpen(func(c *nbio.Conn) {
-		slog.Info("OnOpen:", c.RemoteAddr().String()) //nolint:govet
+		slog.Info("服务端 建立连接", "RemoteAddr", c.RemoteAddr().String()) //nolint:govet
 	})
 
 	g.OnData(func(c *nbio.Conn, data []byte) {
@@ -35,7 +34,7 @@ func (s *server) Run() { //nolint:unused
 
 	err := g.Start()
 	if err != nil {
-		fmt.Printf("nbio.Start failed: %v\n", err)
+		slog.Error("服务端 启动连接失败", "err", err)
 		return
 	}
 	defer g.Stop()
@@ -47,7 +46,7 @@ func (s *server) Run() { //nolint:unused
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			slog.Info("Accept failed:", err)
+			slog.Error("服务端 接收连接失败", "err", err)
 			continue
 		}
 		g.AddConn(conn) //nolint:errcheck
