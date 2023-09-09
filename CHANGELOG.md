@@ -1,3 +1,19 @@
+## v0.0.3
+
+### New Features
+
+- test(nbio): 增加 netstd 的单元测试
+
+### Bug Fixes
+
+- test(nbio): 修正 echo 的单元测试
+
+### Documentation
+
+### Dependency Upgrades
+
+### Contributors
+
 ## v0.0.2
 
 ### New Features
