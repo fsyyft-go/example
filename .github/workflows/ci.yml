@@ -1,0 +1,36 @@
+name: 检查、测试、构建
+on: [push]
+env:
+  MAKE_ENABLE_DAEMON: 1
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 代码拉取
+        uses: actions/checkout@v3
+
+      - name: 安装 go 1.21
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+
+      - name: 显示 go 环境信息
+        run: |
+          go env
+
+      - name: 安装 golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
+          golangci-lint version
+
+      - name: 安装 govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: 检查
+        run: |
+          make test-pre
+
+      - name: 测试
+        run: |
+          make test
