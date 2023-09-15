@@ -43,6 +43,7 @@ CMD_GO_CALLVIS=go-callvis
 CMD_GIT=git
 CMD_GMCHART=gmchart
 CMD_LS=ls
+CMD_MAKE=make
 CMD_MKDIR=mkdir
 CMD_MV=mv
 CMD_PROTOC=protoc
@@ -56,7 +57,10 @@ CMD_UNZIP=unzip
 CMD_ZIP=zip
 
 .PHONY: test
-test: test-pkg/runtime/goroutine test-pkg/testing
+test:
+	# 准备测试所有用例。
+	@$(CMD_MAKE) -f Makefile_Test test-all
+	# 完成测试所有用例。
 	# 准备单元测试后置工作。
 	-@$(CMD_RM) -rf *.test
 	@$(CMD_GO) mod tidy
@@ -75,46 +79,6 @@ test-pre: clean
 	@${CMD_GOVULNCHECK} ./...
 	# 完成代码安全检查。
 	# 结束单元测试前置工作。
-
-.PHONY: test-pkg/runtime/goroutine
-test-pkg/runtime/goroutine:
-	# 准备测试 pkg/runtime/goroutine。
-	@$(CMD_MKDIR) -p $(APP_OUTPUT)/out/$(subst test-,,$@)
-
-ifeq ($(ENV_ENABLE_DAEMON),1)
-	$(CMD_GO) test -v -bench=. ./$(subst test-,,$@)
-else
-	@$(CMD_GO) test -v -bench=. ./$(subst test-,,$@)                        \
-		 	-coverprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/conver.out   \
-			-cpuprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.out        \
-			-memprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/mem.out        \
-			-blockprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/block.out
-
-	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.out     > $(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.pdf
-	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/mem.out     > $(APP_OUTPUT)/out/$(subst test-,,$@)/mem.pdf
-	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/block.out   > $(APP_OUTPUT)/out/$(subst test-,,$@)/block.pdf
-endif
-	# 完成测试 pkg/runtime/goroutine。
-
-.PHONY: test-pkg/testing
-test-pkg/testing:
-	# 准备测试 pkg/testing。
-	@$(CMD_MKDIR) -p $(APP_OUTPUT)/out/$(subst test-,,$@)
-
-ifeq ($(ENV_ENABLE_DAEMON),1)
-	$(CMD_GO) test -v -bench=. ./$(subst test-,,$@)
-else
-	@$(CMD_GO) test -v -bench=. ./$(subst test-,,$@)                        \
-		 	-coverprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/conver.out   \
-			-cpuprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.out        \
-			-memprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/mem.out        \
-			-blockprofile=$(APP_OUTPUT)/out/$(subst test-,,$@)/block.out
-
-	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.out     > $(APP_OUTPUT)/out/$(subst test-,,$@)/cpu.pdf
-	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/mem.out     > $(APP_OUTPUT)/out/$(subst test-,,$@)/mem.pdf
-	@$(CMD_GO) tool pprof -pdf $(APP_OUTPUT)/out/$(subst test-,,$@)/block.out   > $(APP_OUTPUT)/out/$(subst test-,,$@)/block.pdf
-endif
-	# 完成测试 pkg/testing。
 
 .PHONY: clean
 clean:
